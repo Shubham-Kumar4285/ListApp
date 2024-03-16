@@ -1,6 +1,7 @@
 package com.example.listapp
 
 import android.media.Image
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -53,7 +55,7 @@ data class ListItem(
 fun LoadItems(){
     var sItems by remember { mutableStateOf(listOf<ListItem>()) }
     var showDialog by remember {
-        mutableStateOf(true)
+        mutableStateOf(false)
     }
 
     var itemName by remember {
@@ -75,7 +77,25 @@ fun LoadItems(){
                 .padding(14.dp)
         ){
             items(sItems){
-                ManageItems(item = it, {}, {})
+                item->
+                if(item.isEditing){
+                    ItemEditor(item = item, onEditComplete = {
+                        editedName,editedQuantity->
+                        sItems=sItems.map {  it.copy(isEditing = false)}
+                        val editedItem= sItems.find { it.id ==item.id}
+                        editedItem?.let {
+                            it.itemName=editedName
+                            it.quantity=editedQuantity
+                        }
+                    })
+                }else{
+                    ManageItems(item = item, onEditClick = {
+
+                        sItems=sItems.map { it.copy(isEditing = it.id==item.id) }
+                    }, onDeleteClick = {
+                        sItems=sItems-item
+                    })
+                }
 
             }
 
@@ -158,8 +178,10 @@ fun ItemEditor(item:ListItem,onEditComplete:(String,Int)->Unit){
                 .padding(8.dp))
         }
         Button(onClick = {
+            if(editedName.isNotBlank()){
             isEditing=false
             onEditComplete(editedName,editedQuantity.toIntOrNull()?:1)
+            }
         }) {
             Text(text = "Save")
             
@@ -180,7 +202,9 @@ fun ManageItems(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .border(border = BorderStroke(2.dp, Color.Cyan), shape = RoundedCornerShape(20))
+            .border(border = BorderStroke(2.dp, Color.Cyan), shape = RoundedCornerShape(20)),
+        horizontalArrangement = Arrangement.SpaceEvenly
+
     ) {
         Text(text = item.itemName, modifier = Modifier.padding(8.dp))
         Text(text = " Qty: ${item.quantity} ", modifier = Modifier.padding(8.dp))
